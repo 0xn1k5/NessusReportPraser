@@ -135,11 +135,11 @@ def parseHostData(HostProperties):
         if tag.attrib['name'] == "HOST_END":
             host["end"] = tag.text
         if tag.attrib['name'] == "netbios-name":
-            host["netbios"] = tag.text
+            host["netbios"] = tag.text.replace('\n', ' ').replace('\r', '')
         if tag.attrib['name'] == "operating-system":
-            host["os"] = tag.text
+            host["os"] = tag.text.replace('\n', ' ').replace('\r', '')
         if tag.attrib['name'] == "mac-address":
-            host["mac"] = tag.text
+            host["mac"] = tag.text.replace('\n', ' ').replace('\r', '')
         if tag.attrib['name'] == "host-ip":
             host["ip"] = tag.text
     return host
@@ -154,6 +154,20 @@ def parseReportItem(reportItemTag):
     vuln['svc_name'] = reportItemTag.attrib['svc_name']
     vuln['severity'] = reportItemTag.attrib['severity']
     vuln['pluginName'] = reportItemTag.attrib['pluginName']
+
+
+    #print type(reportItemTag)
+    for childTag in reportItemTag:
+        if childTag.tag == "description":
+            vuln['description'] = childTag.text.replace('\n', ' ').replace('\r', '')
+        elif childTag.tag == "solution":
+            vuln['solution'] = childTag.text.replace('\n', ' ').replace('\r', '')
+        elif childTag.tag == "plugin_output":
+            #vuln['plugin_output'] = childTag.text.replace('\n', ' ').replace('\r', '')
+            vuln['plugin_output'] = ""
+
+    #print reportItemTag.xpath("./@port")
+    vuln['plugin_output'] = ""
 
     if args.port and not args.severity_level:
         if int(vuln['port']) in portList:
@@ -176,9 +190,10 @@ def parseReportItem(reportItemTag):
 
     return ''
 
+# It returns a list of dictionary ( host vs list_of_vulnerabilities_per_host for given nessus data
 def parseNessusData(nessusData):
     global blackListedHostList
-    report=list()
+    reportSummary=list()
     hostInfo=dict()
     listVulnInfo=list()
     nessusRoot = etree.fromstring(nessusData)
@@ -196,20 +211,25 @@ def parseNessusData(nessusData):
                             vuln=parseReportItem(HostProperties_ReportItem)
                             if len(vuln) != 0:
                                 listVulnInfo.append(vuln)
-                    report.append({"host":hostInfo,"vuln":listVulnInfo})
-    return report
+                    reportSummary.append({"host":hostInfo,"vuln":listVulnInfo})
+    return reportSummary
 
 def dumpCsvOutput(reports):
+    delimeter="||"
     outFile=""
+    severityIndex=['Info','Low','Medium','High','Critical']
     try:
         outFile=open(args.output_file,"w")
     except:
         printMessage("Error occured while writing output to csv file: "+args.output_file,0)
 
+    outFile.write('HOST_IP' + delimeter + 'NETBIOS_HOSTNAME' + delimeter + 'OPERATING SYSTEM' + delimeter + 'MAC ADDRESS' + delimeter + 'PROTOCOL' + delimeter + 'PORT' + delimeter + 'SERVICE_NAME' + delimeter +
+                      'SEVERITY' + delimeter + 'ISSUE' + delimeter + 'DESCRIPTION' + delimeter +
+                      'SOLUTION' + delimeter + 'RESPONSE_RECEIVED' + "\n")
     for report in reports:
         for hostInfo in report:
             for vuln in hostInfo['vuln']:
-                outFile.write(hostInfo['host']['ip'] + "," + hostInfo['host']['netbios'] + "," + hostInfo['host']['os'].split('\n')[0] + "," + hostInfo['host']['mac']+","+vuln['protocol']+","+vuln['port']+","+vuln['svc_name']+","+vuln['severity']+","+vuln['pluginName']+"\n")
+                outFile.write(hostInfo['host']['ip'] + delimeter + hostInfo['host']['netbios'] + delimeter + hostInfo['host']['os'] + delimeter + hostInfo['host']['mac']+ delimeter +vuln['protocol']+ delimeter + vuln['port']+ delimeter + vuln['svc_name']+delimeter+ severityIndex[int(vuln['severity'])] + delimeter +vuln['pluginName']+ delimeter +vuln['description']+ delimeter +vuln['solution']+ delimeter +vuln['plugin_output'] + "\n")
     outFile.close()
 
 def printData(reports):
