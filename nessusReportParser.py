@@ -127,8 +127,9 @@ def checkNessusReportFormat(nessusData):
 
 def parseHostData(HostProperties):
     host = dict()
-    host["netbios"] = ""
-    host["mac"] = ""
+    host["netbios"] = "NA"
+    host["mac"] = "NA"
+    host["os"] = "NA"
     for tag in HostProperties:
         if tag.attrib['name'] == "HOST_START":
             host["start"] = tag.text
