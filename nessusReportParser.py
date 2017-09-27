@@ -155,6 +155,7 @@ def parseReportItem(reportItemTag):
     vuln['svc_name'] = reportItemTag.attrib['svc_name']
     vuln['severity'] = reportItemTag.attrib['severity']
     vuln['pluginName'] = reportItemTag.attrib['pluginName']
+    vuln['plugin_output'] = "NA"
 
 
     #print type(reportItemTag)
@@ -164,11 +165,10 @@ def parseReportItem(reportItemTag):
         elif childTag.tag == "solution":
             vuln['solution'] = childTag.text.replace('\n', ' ').replace('\r', '')
         elif childTag.tag == "plugin_output":
-            #vuln['plugin_output'] = childTag.text.replace('\n', ' ').replace('\r', '')
-            vuln['plugin_output'] = ""
+            vuln['plugin_output'] = childTag.text.replace('\n', ' ').replace('\r', '')
 
     #print reportItemTag.xpath("./@port")
-    vuln['plugin_output'] = ""
+    #vuln['plugin_output'] = ""
 
     if args.port and not args.severity_level:
         if int(vuln['port']) in portList:
